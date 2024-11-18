@@ -3,11 +3,13 @@ This solution accelerator is designed as an end-to-end example of a Legal Resear
 
 ## Solution Accelerator Architecture
 
+<p align="center">
 <img src="docs/assets/graph_rag_arch.png" style="width:70%; height:auto; display: block; margin: 0 auto;  text-align:center">
+</p>
 
 ## Solution Accelerator Concepts
 
-As the architecture diagram shows, this solution accelerator brings together vector search, semantic ranking, and GraphRAG.  This accompanying blog article covers these concepts in more detail, but here are some highlights, including the information retrieval pipeline:
+As the architecture diagram shows, this solution accelerator brings together **vector search, semantic ranking, and GraphRAG**. Here are some highlights, including the information retrieval pipeline:
 
 > **Semantic Ranking:**
 > Enhances vector search accuracy by re-ranking results with a semantic ranker model, significantly improving top results' relevance (e.g., up to a 10–20% boost in NDCG@10 accuracy). The semantic ranker is available as a standalone solution accelerator, detailed in the blog: Introducing Semantic Ranker Solution Accelerator for Azure Database for PostgreSQL.
@@ -20,13 +22,13 @@ As the architecture diagram shows, this solution accelerator brings together vec
 
 > **Information Retrieval Pipeline:**
 > We leverage the structure of the citation graph at the query time by using specialized graph query. The graph query is designed to use the prominence of the legal cases as a signal to improve the accuracy of the information retrieval pipeline. The graph query is expressed as a mixture of traditional relational query and OpenCypher graph query and executed on Postgres using the Apache AGE extension. The resulting information retrieval pipeline is shown below.
-> <img src="docs/assets/info_pipeline.png" style="width:70%; height:auto; display: block; margin: 0 auto; text-align:center">
+> <p align="center"><img src="docs/assets/info_pipeline.png" style="width:70%; height:auto; display: block; margin: 0 auto; text-align:center"></p>
 
 ## Further Reading
 For related solution accelerators and articles please see the following:
-- Full Blog on GraphRAG Solution for Azure Database for PostgreSQL
-- Semantic Ranker Solution Accelerator for Azure Database for PostgreSQL
-- GraphRAG: Unlocking LLM discovery on narrative private data
+- [Semantic Ranker Solution Accelerator for Azure Database for PostgreSQL](https://github.com/microsoft/Semantic-Ranker-Solution-PostgreSQL)
+- [GraphRAG: Unlocking LLM discovery on narrative private data](https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/)
+- [Reciprocal Rank Fusion (RRF) explained in 4 mins](https://medium.com/@devalshah1619/mathematical-intuition-behind-reciprocal-rank-fusion-rrf-explained-in-2-mins-002df0cc5e2a)
 
 ## Deployment and Development
 
@@ -51,10 +53,6 @@ The steps below guides you to deploy the Azure services necessary for this solut
     azd up
     ```
     This will provision Azure resources and deploy this sample to those resources, including Azure Database for PostgreSQL Flexible Server, Azure OpenAI service, and Azure App Service.
-
-### Development Locally in Development Container
-The steps below guides you on how to develop locally using the provided development container:
-TODO
 
 ## Contributing
 
