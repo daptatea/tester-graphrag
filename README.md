@@ -1,5 +1,13 @@
-# PAID-mshacks
-PAID (Postgres AI demos) Use PAID to get paid! In this day and age, the only way to increase revenue is to understand how to turn your Postgres application into an intelligent AI application. Learn quickly with this interactive Postgres App
+# GraphRAG Solution for Azure Database for PostgreSQL
+This solution accelerator is designed as an end-to-end example of a Legal Research Copilot application. It demonstrates the implementation of three information retrieval techniques: vector search, semantic ranking, and GraphRAG on Azure Database for PostgreSQL, and illustrates how they can be combined to deliver high quality responses to legal research questions. The app uses the U.S. Case Law dataset of 0.5 million legal cases as a source of the factual data.
+
+## Local Development in Development Container
+
+TODO: Add Steps Here
+
+## Deployment using Azure Development CLI (azd)
+
+TODO: Add Steps Here
 
 ## Running the frontend
 
