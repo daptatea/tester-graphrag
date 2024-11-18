@@ -3,28 +3,24 @@ This solution accelerator is designed as an end-to-end example of a Legal Resear
 
 ## Solution Accelerator Architecture
 
-<img src="docs/assets/graph_rag_arch.png" style="width:70%; height:auto; display: block; margin: 0 auto;">
+<img src="docs/assets/graph_rag_arch.png" style="width:70%; height:auto; display: block; margin: 0 auto;  text-align:center">
 
 ## Solution Accelerator Concepts
 
 As the architecture diagram shows, this solution accelerator brings together vector search, semantic ranking, and GraphRAG.  This accompanying blog article covers these concepts in more detail, but here are some highlights, including the information retrieval pipeline:
 
 > **Semantic Ranking:**
-
-Enhances vector search accuracy by re-ranking results with a semantic ranker model, significantly improving top results' relevance (e.g., up to a 10–20% boost in NDCG@10 accuracy). The semantic ranker is available as a standalone solution accelerator, detailed in the blog: Introducing Semantic Ranker Solution Accelerator for Azure Database for PostgreSQL.
+> Enhances vector search accuracy by re-ranking results with a semantic ranker model, significantly improving top results' relevance (e.g., up to a 10–20% boost in NDCG@10 accuracy). The semantic ranker is available as a standalone solution accelerator, detailed in the blog: Introducing Semantic Ranker Solution Accelerator for Azure Database for PostgreSQL.
 
 > **GraphRAG:**
-
-An advanced RAG technique proposed by Microsoft Research to improve quality of RAG system responses by extracting knowledge graph from the source data and leveraging it to provide better context to the LLM. The GraphRAG technique consists of three high level steps:
-1. Graph extraction 
-2. Entity summarization 
-3. Graph query generation at query time 
+> An advanced RAG technique proposed by Microsoft Research to improve quality of RAG system responses by extracting knowledge graph from the source data and leveraging it to provide better context to the LLM. The GraphRAG technique consists of three high level steps:
+> 1. Graph extraction 
+> 2. Entity summarization 
+> 3. Graph query generation at query time 
 
 > **Information Retrieval Pipeline:**
-
-We leverage the structure of the citation graph at the query time by using specialized graph query. The graph query is designed to use the prominence of the legal cases as a signal to improve the accuracy of the information retrieval pipeline. The graph query is expressed as a mixture of traditional relational query and OpenCypher graph query and executed on Postgres using the Apache AGE extension. The resulting information retrieval pipeline is shown below.
-
-<img src="docs/assets/info_pipeline.png" style="width:70%; height:auto; display: block; margin: 0 auto;">
+> We leverage the structure of the citation graph at the query time by using specialized graph query. The graph query is designed to use the prominence of the legal cases as a signal to improve the accuracy of the information retrieval pipeline. The graph query is expressed as a mixture of traditional relational query and OpenCypher graph query and executed on Postgres using the Apache AGE extension. The resulting information retrieval pipeline is shown below.
+> <img src="docs/assets/info_pipeline.png" style="width:70%; height:auto; display: block; margin: 0 auto; text-align:center">
 
 
 
