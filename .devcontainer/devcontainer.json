@@ -11,8 +11,6 @@
 		"5173": {"label": "Frontend port", "onAutoForward": "openBrowser"}
 	},
 	"containerEnv": {
-        "ENV_VAR_NAME": "value",
-        "API_ENDPOINT": "https://api.example.com",
 		"POSTGRES_HOST": "",
 		"POSTGRES_USERNAME": "",
 		"POSTGRES_PASSWORD": "",
@@ -69,6 +67,6 @@
 	},
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.	
 	"remoteUser": "root",
-	// Install git and configure git to use the credential manager to Auth to GitHub SSO
-	"postCreateCommand": "curl -L https://aka.ms/gcm/linux-install-source.sh | bash && git-credential-manager configure"	
+	// Configure git to use the credential manager to Auth to GitHub SSO
+	"postCreateCommand": "git-credential-manager configure"	
 }
