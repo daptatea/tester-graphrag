@@ -120,6 +120,8 @@ const Chat = () => {
         return chatCompletion;
     };
     const makeApiRequest = async (question: string) => {
+        console.log("question: " + question);
+
         lastQuestionRef.current = question;
 
         error && setError(undefined);
@@ -135,6 +137,8 @@ const Chat = () => {
             const allMessages: AIChatMessage[] = [...messages, { content: question, role: "user" }];
 
             console.log("retrievalMode Last:", retrievalMode);
+            console.log("useAdvancedFlow Last:", useAdvancedFlow);
+
             const options: ChatAppRequestOptions = {
                 context: {
                     overrides: {
@@ -149,8 +153,18 @@ const Chat = () => {
             };
             const chatClient: AIChatProtocolClient = new AIChatProtocolClient("/chat");
             if (shouldStream) {
+                
+                console.log("shouldStream true");
+                
                 const result = (await chatClient.getStreamedCompletion(allMessages, options)) as AsyncIterable<RAGChatCompletionDelta>;
+
+                console.log("result:" + result);
+
                 const parsedResponse = await handleAsyncRequest(question, answers, result);
+
+                console.log("parsedResponse:" + parsedResponse);
+
+
                 // switch (sharedState)
                 // {
                 //     case PAIDRetrievalMode.Vector:
@@ -287,6 +301,8 @@ const Chat = () => {
                                                     answer={answer[1]}
                                                     isSelected={selectedAnswer === index && activeAnalysisPanelTab !== undefined}
                                                     onCitationClicked={c => onShowCitation(c, index)}
+                                                    //onThoughtProcessClicked={() => console.log(lastQuestionRef.current) /*onToggleTab(AnalysisPanelTabs.ThoughtProcessTab, index)*/}
+                                                    //onSupportingContentClicked={() => console.log(lastQuestionRef.current) /*onToggleTab(AnalysisPanelTabs.SupportingContentTab, index)*/}
                                                     onThoughtProcessClicked={() => onToggleTab(AnalysisPanelTabs.ThoughtProcessTab, index)}
                                                     onSupportingContentClicked={() => onToggleTab(AnalysisPanelTabs.SupportingContentTab, index)}
                                                     onFollowupQuestionClicked={q => makeApiRequest(q)}
@@ -317,7 +333,7 @@ const Chat = () => {
                         <div className={styles.chatInput}>
                             <QuestionInput
                                 clearOnSend
-                                placeholder="Type a new question"
+                                placeholder="Type a new question here"
                                 disabled={isLoading}
                                 onSend={question => makeApiRequest(question)}
                             />
@@ -333,6 +349,11 @@ const Chat = () => {
                         citationHeight="810px"
                         answer={answers[selectedAnswer][1]}
                         activeTab={activeAnalysisPanelTab}
+                        question={lastQuestionRef.current}
+                        useAdvancedFlow={useAdvancedFlow}
+                        retrieveCount={retrieveCount}
+                        retrievalMode={retrievalMode}
+                        temperature={temperature}
                     />
                 )}
 

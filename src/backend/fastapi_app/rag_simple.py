@@ -30,7 +30,7 @@ class SimpleRAGChat(RAGChatBase):
         self.openai_chat_client = openai_chat_client
         self.chat_model = chat_model
         self.chat_deployment = chat_deployment
-        self.chat_token_limit = get_token_limit(chat_model, default_to_minimum=True)
+        self.chat_token_limit = get_token_limit(chat_model, default_to_minimum=True)        
 
     async def prepare_context(
         self, chat_params: ChatParams
@@ -48,6 +48,16 @@ class SimpleRAGChat(RAGChatBase):
 
         if results is None:
             results = []  # Default to an empty list if no results
+
+        #print("Here are the results:")
+        #print(results)
+        '''
+        for result in results:
+            #output = result.to_str_for_rag()
+            output = result.to_dict()
+            #print(output["name"])
+            print(output)'''
+
 
         sources_content = [f"[{(item.id)}]:{item.to_str_for_rag()}\n\n" for item in results]
         content = "\n".join(sources_content)

@@ -10,10 +10,15 @@ from fastapi_app.dependencies import get_azure_credential
 logger = logging.getLogger("ragapp")
 
 
-async def create_postgres_engine(*, host, username, database, password, sslmode, azure_credential) -> AsyncEngine:
+async def create_postgres_engine(*, host, username, database, password, sslmode, azure_credential) -> AsyncEngine:    
     def get_password_from_azure_credential():
-        token = azure_credential.get_token("https://ossrdbms-aad.database.windows.net/.default")
-        return token.token
+        env_password = os.environ.get("POSTGRES_PASSWORD")
+        if env_password is not None:
+            token = env_password
+        else:
+            token_object = azure_credential.get_token("https://ossrdbms-aad.database.windows.net/.default")
+            token = token_object.token
+        return token
 
     token_based_password = False
     if host.endswith(".database.azure.com"):

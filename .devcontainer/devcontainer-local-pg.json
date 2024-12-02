@@ -1,39 +1,16 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.245.0/containers/python-3
 {
-	"name": "legal-research-copilot-postgresql-core",
-	"build": {
-        "dockerfile": "../Dockerfile.dev"
-    },
-	"forwardPorts": [8000, 5173],
-	"portsAttributes": {		
+	"name": "legal-research-copilot-postgresql",
+	"dockerComposeFile": "../docker-compose.yaml",
+	"service": "app",
+	"workspaceFolder": "/workspace",
+	"forwardPorts": [5432],
+	"portsAttributes": {
+		"5432": {"label": "PostgreSQL port", "onAutoForward": "silent"},
 		"8000": {"label": "Backend port", "onAutoForward": "openBrowser"},
 		"5173": {"label": "Frontend port", "onAutoForward": "openBrowser"}
 	},
-	"containerEnv": {
-        "ENV_VAR_NAME": "value",
-        "API_ENDPOINT": "https://api.example.com",
-		"POSTGRES_HOST": "",
-		"POSTGRES_USERNAME": "",
-		"POSTGRES_PASSWORD": "",
-		"POSTGRES_DATABASE": "",
-		"POSTGRES_SSL": "require",
-		"RUNNING_IN_PRODUCTION": "true",
-		"OPENAI_CHAT_HOST": "azure",
-		"AZURE_OPENAI_CHAT_DEPLOYMENT": "gpt-35-turbo-16k",
-		"AZURE_OPENAI_CHAT_MODEL": "gpt-35-turbo-16k",
-		"OPENAICOM_CHAT_MODEL": "",
-		"OPENAI_EMBED_HOST": "azure",
-		"OPENAICOM_EMBED_MODEL_DIMENSIONS": "",
-		"OPENAICOM_EMBED_MODEL": "",
-		"AZURE_OPENAI_EMBED_MODEL": "text-embedding-3-small",
-		"AZURE_OPENAI_EMBED_DEPLOYMENT": "text-embedding-3-small",
-		"AZURE_OPENAI_EMBED_DIMENSIONS": "1536",
-		"AZURE_OPENAI_ENDPOINT": "",
-		"AZURE_OPENAI_VERSION": "2023-05-15",
-		"AZURE_ML_SCORING_ENDPOINT": "",
-		"AZURE_ML_ENDPOINT_KEY": ""
-    },
     "features": {
         "ghcr.io/devcontainers/features/node:1": {
             "version": "18",
@@ -51,7 +28,12 @@
 			// Add the IDs of extensions you want installed when the container is created.
 			"extensions": [
 				"ms-python.python",
-        		"ms-azuretools.vscode-docker"				
+				"ms-python.vscode-pylance",
+				"charliermarsh.ruff",
+				"mtxr.sqltools",
+				"mtxr.sqltools-driver-pg",
+				"ms-vscode.vscode-node-azure-pack",
+                "esbenp.prettier-vscode"
 			],
 			// Set *default* container specific settings.json values on container create.
 			"settings": {
@@ -62,11 +44,14 @@
 					"editor.formatOnSave": true,
 					"editor.codeActionsOnSave": {
 						"source.fixAll": "explicit"
-					}					
+					},
+					"editor.defaultFormatter": "charliermarsh.ruff"
 				}
 			}
 		}
 	},
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "pip install -r requirements-dev.txt && pip install -e src/backend",
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "root"
+	"remoteUser": "vscode"
 }

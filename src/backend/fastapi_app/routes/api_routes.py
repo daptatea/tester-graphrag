@@ -6,6 +6,7 @@ import fastapi
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
+from datetime import datetime
 
 from fastapi_app.api_models import (
     ChatRequest,
@@ -35,6 +36,12 @@ async def format_as_ndjson(r: AsyncGenerator[RetrievalResponseDelta, None]) -> A
         logging.exception("Exception while generating response stream: %s", error)
         yield json.dumps({"error": str(error)}, ensure_ascii=False) + "\n"
 
+@router.get("/chat/test")
+async def test_endpoint():
+    current_datetime = datetime.now()
+    datetime_string = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+    response = "Test Endpoint Working.  Current Datetime: " + datetime_string
+    return response
 
 @router.get("/items/{id}", response_model=ItemPublic)
 async def item_handler(database_session: DBSession, id: int) -> ItemPublic:
@@ -158,14 +165,67 @@ async def chat_stream_handler(
         chat_deployment=context.openai_chat_deployment,
     )
 
+    print("test test")
+
     chat_params = rag_flow.get_params(chat_request.messages, chat_request.context.overrides)
+
+    print("chat_request.messages:") 
+    print(chat_request.messages) 
 
     # Intentionally do this before we stream down a response, to avoid using database connections during stream
     # See https://github.com/tiangolo/fastapi/discussions/11321
     contextual_messages, results, thoughts = await rag_flow.prepare_context(chat_params)
+
+    print("results2")
+    print(results)
 
     result = rag_flow.answer_stream(
         chat_params=chat_params, contextual_messages=contextual_messages, results=results, earlier_thoughts=thoughts
     )
 
     return StreamingResponse(content=format_as_ndjson(result), media_type="application/x-ndjson")
+
+
+@router.post("/chat/get_graph_ui_results")
+async def get_graph_results(
+    context: CommonDeps,
+    database_session: DBSession,
+    openai_embed: EmbeddingsClient,
+    openai_chat: ChatClient,
+    chat_request: ChatRequest,
+):
+    searcher = PostgresSearcher(
+        db_session=database_session,
+        openai_embed_client=openai_embed.client,
+        embed_deployment=context.openai_embed_deployment,
+        embed_model=context.openai_embed_model,
+        embed_dimensions=context.openai_embed_dimensions,
+        embedding_column=context.embedding_column,
+    )
+
+    rag_flow = SimpleRAGChat(
+        searcher=searcher,
+        openai_chat_client=openai_chat.client,
+        chat_model=context.openai_chat_model,
+        chat_deployment=context.openai_chat_deployment,
+    )
+
+    #print("test test")
+
+    chat_params = rag_flow.get_params(chat_request.messages, chat_request.context.overrides)
+
+    #print("chat_request.messages:") 
+    #print(chat_request.messages) 
+
+    # Intentionally do this before we stream down a response, to avoid using database connections during stream
+    # See https://github.com/tiangolo/fastapi/discussions/11321
+    contextual_messages, results, thoughts = await rag_flow.prepare_context(chat_params)
+
+    #print("results2")
+    #print(results)
+
+    ids = []
+    for result in results:
+        ids.append(result.id)
+    
+    return {"ids": ids}     

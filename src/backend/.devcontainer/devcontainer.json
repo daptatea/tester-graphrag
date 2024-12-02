@@ -1,15 +1,11 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.245.0/containers/python-3
 {
-	"name": "legal-research-copilot-postgresql-core",
+	"name": "legal-research-copilot-postgresql-backend",
 	"build": {
-        "dockerfile": "../Dockerfile.dev"
+        "dockerfile": "../Dockerfile"
     },
-	"forwardPorts": [8000, 5173],
-	"portsAttributes": {		
-		"8000": {"label": "Backend port", "onAutoForward": "openBrowser"},
-		"5173": {"label": "Frontend port", "onAutoForward": "openBrowser"}
-	},
+	"forwardPorts": [8000],	
 	"containerEnv": {
         "ENV_VAR_NAME": "value",
         "API_ENDPOINT": "https://api.example.com",

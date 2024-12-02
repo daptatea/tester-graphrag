@@ -4,6 +4,7 @@ import styles from "./AnalysisPanel.module.css";
 
 import { SupportingContent } from "../SupportingContent";
 import { RAGChatCompletion } from "../../api";
+import { PAIDRetrievalMode } from "../../api";
 import { AnalysisPanelTabs } from "./AnalysisPanelTabs";
 import { ThoughtProcess } from "./ThoughtProcess";
 import { MarkdownViewer } from "../MarkdownViewer";
@@ -17,11 +18,16 @@ interface Props {
     activeCitation: string | undefined;
     citationHeight: string;
     answer: RAGChatCompletion;
+    question?: string;
+    useAdvancedFlow?: boolean;
+    retrieveCount?: number;
+    temperature?: number;
+    retrievalMode?: PAIDRetrievalMode;
 }
 
 const pivotItemDisabledStyle = { disabled: true, style: { color: "grey" } };
 
-export const AnalysisPanel = ({ answer, activeTab, activeCitation, citationHeight, className, onActiveTabChanged }: Props) => {
+export const AnalysisPanel = ({ useAdvancedFlow, retrieveCount, retrievalMode, temperature, question, answer, activeTab, activeCitation, citationHeight, className, onActiveTabChanged }: Props) => {
     const isDisabledThoughtProcessTab: boolean = !answer.context.thoughts;
     const isDisabledSupportingContentTab: boolean = true;// !answer.context.data_points;
     const isDisabledCitationTab: boolean = true; //!activeCitation;
@@ -76,7 +82,14 @@ export const AnalysisPanel = ({ answer, activeTab, activeCitation, citationHeigh
                 headerText="Citation Graph"
                 headerButtonProps={isDisabledThoughtProcessTab ? pivotItemDisabledStyle : undefined}
             >
-                <GraphPanel thoughts={answer.context.thoughts || []} />
+                <GraphPanel
+                    question={question}                    
+                    useAdvancedFlow={useAdvancedFlow}
+                    retrieveCount={retrieveCount}
+                    retrievalMode={retrievalMode}
+                    temperature={temperature}
+                    thoughts={answer.context.thoughts || []}
+                    />
             </PivotItem>
         </Pivot>
     );
