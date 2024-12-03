@@ -1,6 +1,7 @@
 LOAD 'age';
 SET search_path = public, ag_catalog, "$user";
 
+-- Graph query
 WITH
 graph AS (
     SELECT *, RANK() OVER (ORDER BY graph_query.refs DESC) AS graph_rank

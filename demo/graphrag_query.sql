@@ -128,7 +128,7 @@ SELECT *
 FROM rrf;
 
 -- Views
-CREATE VIEW vector_similarity AS
+CREATE OR REPLACE VIEW vector_similarity AS
 WITH
 user_query AS (
     SELECT 'Water leaking into the apartment from the floor above.' AS query_text
@@ -143,6 +143,7 @@ SELECT
     cases.id,
     cases.data#>>'{name_abbreviation}' AS case_name,
     cases.data#>>'{decision_date}' AS date,
+	cases.data#>>'{casebody, opinions, 0, text}' AS case_text,
     cases.data AS data,
     RANK() OVER (ORDER BY description_vector <=> embedding) AS vector_rank,
     query_text,
@@ -156,7 +157,85 @@ ORDER BY
     description_vector <=> embedding
 LIMIT 60;
 
+DROP VIEW vector_similarity;
+DROP VIEW semantic_ranked;
+
+
 CREATE VIEW semantic_ranked AS
+WITH
+json_payload AS (
+    SELECT jsonb_build_object(
+        'pairs', 
+        jsonb_agg(
+            jsonb_build_array(
+                query_text, 
+                LEFT(case_text, 800)
+            )
+        )
+    ) AS json_pairs
+    FROM vector_similarity
+),
+semantic AS (
+    SELECT elem.relevance::DOUBLE precision as relevance, elem.ordinality
+    FROM json_payload,
+         LATERAL jsonb_array_elements(
+             azure_ml.invoke(
+                 json_pairs,
+                 deployment_name => 'bge-v2-m3-1',
+                 timeout_ms => 180000
+             )
+         ) WITH ORDINALITY AS elem(relevance)
+),
+semantic_ranked AS (
+    SELECT RANK() OVER (ORDER BY relevance DESC) AS semantic_rank,
+			semantic.*, vector_similarity.*
+    FROM vector_similarity
+    JOIN semantic ON vector_similarity.vector_rank = semantic.ordinality
+    ORDER BY semantic.relevance DESC
+)
+select * from semantic_ranked;
+
+-- UDF
+CREATE OR REPLACE FUNCTION semantic_reranking(query TEXT, vector_search_results TEXT[])
+RETURNS TABLE (item_text TEXT, relevance jsonb) AS $$
+BEGIN
+    RETURN QUERY
+        WITH
+        json_pairs AS(
+        SELECT jsonb_build_object(
+                    'pairs', 
+                    jsonb_agg(
+                        jsonb_build_array(query, LEFT(item_text_, 800))
+                    )
+                ) AS json_pairs_data
+                FROM (
+                    SELECT a.item_text as item_text_
+                    FROM unnest(vector_search_results) as a(item_text)
+                )
+        ), 
+        relevance_scores AS(
+            SELECT jsonb_array_elements(invoke.invoke) as relevance_results
+            FROM azure_ml.invoke(
+                        (SELECT json_pairs_data FROM json_pairs),
+                        deployment_name=>'bge-v2-m3-1', timeout_ms => 120000)
+        ),
+        relevance_scores_rn AS (
+            SELECT *, ROW_NUMBER() OVER () AS idx
+            FROM relevance_scores
+        )
+        SELECT a.item_text,
+               r.relevance_results
+            FROM
+                unnest(vector_search_results) WITH ORDINALITY AS a(item_text, idx2)
+            JOIN
+                relevance_scores_rn AS r(relevance_results, idx)
+            ON
+                a.idx2 = r.idx;
+
+END $$ 
+LANGUAGE plpgsql;
+
+-- Old Expanded semantic ranker query
 WITH
 json_payload AS (
     SELECT jsonb_build_object(
@@ -188,4 +267,4 @@ semantic_ranked AS (
     JOIN semantic ON vector_similarity.vector_rank = semantic.ordinality
     ORDER BY semantic.relevance DESC
 )
-select * from semantic_ranked;
+SELECT semantic_rank,relevance,id,case_name,date FROM semantic_ranked;
