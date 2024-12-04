@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Index, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -93,7 +94,50 @@ class Case(Base):
         """
         Converts Case to a string representation for Retrieval-Augmented Generation (RAG) usage.
         """
-        data_fields = " ".join([f"{key}:{value}" for key, value in self.data.items()])
+        #data_fields = " ".join([f"{key}:{value}" for key, value in self.data.items()])
+
+        allowed_keys = ["id", "court", "name", "parties", "opinions", "attorneys", "casebody"]
+        data_fields = ""
+
+        for key, value in self.data.items():
+    
+            if key and value:
+
+                print(key)
+
+                if key in allowed_keys:
+
+                    if key == "casebody":
+
+                        str_value = str(value)
+                        value = str_value[:1000]
+
+                        '''
+                        # Replace single quotes with double quotes to make it JSON-compatible
+                        str_value = str(value)
+                        json_str = str_value.replace("'", '"')
+
+                        print(json_str)
+
+                        # Parse the string into a Python dictionary
+                        new_data = json.loads(json_str)
+
+                        # Truncate the "text" field in "opinions" and the "head_matter" field
+                        for opinion in new_data.get("opinions", []):
+                            if "text" in opinion:
+                                opinion["text"] = opinion["text"][:1000]  # Truncate to 1000 characters
+
+                        if "head_matter" in new_data:
+                            new_data["head_matter"] = new_data["head_matter"][:1000]  # Truncate to 1000 characters
+
+                        value = json.dumps(new_data, indent=4)'''                        
+                        
+                    data_fields += f"{key}:{value} "
+            
+            data_fields = data_fields.strip()
+
+        print(data_fields)
+
         return f"ID: {self.id} Data: {data_fields}"
 
     def to_str_for_embedding(self):

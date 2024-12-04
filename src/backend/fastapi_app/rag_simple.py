@@ -49,6 +49,17 @@ class SimpleRAGChat(RAGChatBase):
         if results is None:
             results = []  # Default to an empty list if no results
 
+        max_tokens = self.chat_token_limit - chat_params.response_token_limit
+
+        print("max_tokens")
+        print(max_tokens)
+        
+        print("self.chat_token_limit")
+        print(self.chat_token_limit)
+        
+        print("chat_params.response_token_limit")
+        print(chat_params.response_token_limit)
+        
         #print("Here are the results:")
         #print(results)
         '''
@@ -61,6 +72,12 @@ class SimpleRAGChat(RAGChatBase):
 
         sources_content = [f"[{(item.id)}]:{item.to_str_for_rag()}\n\n" for item in results]
         content = "\n".join(sources_content)
+
+        #print("content")
+        #print(content)
+
+        #print("content len")
+        #print(len(content))
 
         # Generate a contextual and content specific answer using the search results and chat history
         contextual_messages: list[ChatCompletionMessageParam] = build_messages(

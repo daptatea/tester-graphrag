@@ -165,19 +165,19 @@ async def chat_stream_handler(
         chat_deployment=context.openai_chat_deployment,
     )
 
-    print("test test")
+    #print("test test")
 
     chat_params = rag_flow.get_params(chat_request.messages, chat_request.context.overrides)
 
-    print("chat_request.messages:") 
-    print(chat_request.messages) 
+    #print("chat_request.messages:") 
+    #print(chat_request.messages) 
 
     # Intentionally do this before we stream down a response, to avoid using database connections during stream
     # See https://github.com/tiangolo/fastapi/discussions/11321
     contextual_messages, results, thoughts = await rag_flow.prepare_context(chat_params)
 
-    print("results2")
-    print(results)
+    #print("contextual_messages len:*******")
+    #print(len(contextual_messages))
 
     result = rag_flow.answer_stream(
         chat_params=chat_params, contextual_messages=contextual_messages, results=results, earlier_thoughts=thoughts
