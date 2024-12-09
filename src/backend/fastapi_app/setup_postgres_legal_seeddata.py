@@ -164,6 +164,11 @@ async def ingest_cases_to_graph_from_postgresql(session, app_identity_name):
     await session.commit()
     logger.info("Granted permissions to the case_graph schema.")
 
+    await session.execute(text('GRANT ALL ON SCHEMA case_graph TO "legalcaseadmin";'))
+    await session.execute(text('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA case_graph TO "legalcaseadmin";'))
+    await session.commit()
+    logger.info("Granted privileges on schema case_graph to legalcaseadmin.")
+
     for case in cases:
         case_id, case_text = case
         case_text_sanitized = sanitize_case_text(case_text)
@@ -258,11 +263,158 @@ async def verify_age_query(session, app_identity_name):
     await session.execute(text(f'GRANT ALL ON SCHEMA case_graph TO "{app_identity_name}";'))
     await session.execute(text(f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA case_graph TO "{app_identity_name}";'))
     await session.commit()
+    await session.execute(text('GRANT ALL ON SCHEMA case_graph TO "legalcaseadmin";'))
+    await session.execute(text('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA case_graph TO "legalcaseadmin";'))
+    await session.commit()
     logger.info("AGE queries are verified.")
 
 
 async def create_plpgsql_functions(session, app_identity_name):
-    # Define the get_vector_pagerank_rrf_cases function
+    function_msrgraphrag_semanticranked = text("""
+        CREATE OR REPLACE FUNCTION get_msr_graphrag_semantic_cases(
+            query_embedding VECTOR(1536),
+            query_text TEXT,
+            top_n INT
+        )
+        RETURNS TABLE (
+            report_id TEXT,
+            document_id TEXT,
+            document_title TEXT,
+            summary TEXT,
+            full_content TEXT,
+            document_text TEXT,
+            attributes JSONB
+        ) AS $_$
+        BEGIN
+            RETURN QUERY
+            WITH query_embedding AS (
+                SELECT query_embedding AS embedding
+            ),
+            -- Initial vector search to get top candidates
+            vector_search AS (
+                SELECT 
+                    fcr.id AS report_id,
+                    ftd.id AS document_id,
+                    ftd.title AS document_title,
+                    fcr.summary,
+                    fcr.full_content,
+                    ftd.text AS document_text,
+                    ftd.attributes,
+                    fcr.full_content_vector <=> query_embedding.embedding AS vector_distance,
+                    RANK() OVER (ORDER BY fcr.full_content_vector <=> query_embedding.embedding ASC) AS vector_rank
+                FROM 
+                    final_community_reports fcr
+                JOIN 
+                    final_communities fc ON fcr.community = fc.community
+                JOIN 
+                    final_text_units ftu ON ftu.id = ANY(fc.text_unit_ids)
+                JOIN 
+                    final_documents ftd ON ftd.id = ANY(ftu.document_ids),
+                    query_embedding
+                LIMIT top_n * 2 -- Retrieve more candidates for reranking
+            ),
+            -- Create JSON payload for the semantic reranker, including query_text
+            json_payload AS (
+                SELECT jsonb_build_object(
+                    'pairs',
+                    jsonb_agg(
+                        jsonb_build_array(
+                            query_text, -- Include query_text here
+                            LEFT(vector_search.full_content, 800) -- Truncate document text for processing
+                        )
+                    )
+                ) AS json_pairs
+                FROM vector_search
+            ),
+            -- Invoke the semantic reranker
+            semantic_scores AS (
+                SELECT 
+                    elem.relevance::DOUBLE PRECISION AS relevance, 
+                    elem.ordinality
+                FROM json_payload AS jp,
+                    LATERAL jsonb_array_elements(
+                        azure_ml.invoke(
+                            jp.json_pairs,
+                            deployment_name => 'bge-v2-m3-1',
+                            timeout_ms => 180000
+                        )
+                    ) WITH ORDINALITY AS elem(relevance)
+            ),
+            -- Combine vector and semantic scores
+            semantic_ranked AS (
+                SELECT 
+                    RANK() OVER (ORDER BY semantic_scores.relevance DESC) AS semantic_rank,
+                    vector_search.*,
+                    semantic_scores.relevance
+                FROM vector_search
+                JOIN semantic_scores 
+                ON vector_search.vector_rank = semantic_scores.ordinality
+                ORDER BY semantic_scores.relevance DESC
+            )
+            -- Return top N results after semantic reranking
+            SELECT 
+                semantic_ranked.report_id,
+                semantic_ranked.document_id,
+                semantic_ranked.document_title,
+                semantic_ranked.summary,
+                semantic_ranked.full_content,
+                semantic_ranked.document_text,
+                semantic_ranked.attributes
+            FROM semantic_ranked
+            ORDER BY semantic_rank
+            LIMIT top_n;
+        END;
+        $_$ LANGUAGE plpgsql;
+
+    """)
+    await session.execute(function_msrgraphrag_semanticranked)
+    await session.commit()
+    logger.info("Function get_msr_graphrag_semantic_cases defined successfully.")
+
+    function_msrgraphrag = text("""
+        CREATE OR REPLACE FUNCTION get_msr_graphrag_cases(
+            query_embedding VECTOR(1536),
+            top_n INT
+        )
+        RETURNS TABLE (
+            report_id TEXT,
+            document_id TEXT,
+            document_title TEXT,
+            summary TEXT,
+            document_text TEXT,
+            attributes JSONB
+        ) AS $_$
+        BEGIN
+            RETURN QUERY
+            WITH query_embedding AS (
+                SELECT query_embedding AS embedding
+            )
+            SELECT 
+                fcr.id AS report_id,
+                ftd.id AS document_id,
+                ftd.title AS document_title,
+                fcr.summary,
+                ftd.text AS document_text,
+                ftd.attributes
+            FROM 
+                final_community_reports fcr
+            JOIN 
+                final_communities fc ON fcr.community = fc.community
+            JOIN 
+                final_text_units ftu ON ftu.id = ANY(fc.text_unit_ids)
+            JOIN 
+                final_documents ftd ON ftd.id = ANY(ftu.document_ids),
+                query_embedding qe
+            ORDER BY 
+                fcr.full_content_vector <=> qe.embedding ASC
+            LIMIT top_n;
+        END;
+        $_$ LANGUAGE plpgsql;
+    """)
+    await session.execute(function_msrgraphrag)
+    await session.commit()
+    logger.info("Function get_msr_graphrag_cases defined successfully.")
+
     function_graphrag = text("""
         CREATE OR REPLACE FUNCTION get_vector_semantic_graphrag_cases(
             query_text TEXT,

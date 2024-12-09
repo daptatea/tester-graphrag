@@ -56,9 +56,7 @@ class PostgresSearcher:
         filter_clause_where, filter_clause_and = self.build_filter_clause(filters)
         table_name = Case.__tablename__
 
-        token_file = Path(__file__).parent / "postgres_token.txt"
-
-        if token_file.exists() and retrieval_mode == RetrievalMode.GRAPHRAG:
+        if retrieval_mode == RetrievalMode.GRAPHRAG:
             try:
                 script_path = Path(__file__).parent / "setup_postgres_age.py"
 
@@ -77,12 +75,20 @@ class PostgresSearcher:
 
         await self.db_session.execute(text('SET search_path = ag_catalog, "$user", public;'))
 
-        if retrieval_mode == RetrievalMode.GRAPHRAG:
+        if retrieval_mode == RetrievalMode.MSRGRAPHRAG:
+            function_call = """
+                SELECT * FROM get_msr_graphrag_semantic_cases(
+                    CAST(:embedding AS vector(1536)),
+                    :query_text,
+                    :top_n
+                );
+            """
+        elif retrieval_mode == RetrievalMode.GRAPHRAG:
             function_call = """
                 SELECT * FROM get_vector_semantic_graphrag_cases(
-                    :query_text, 
-                    CAST(:embedding AS vector(1536)), 
-                    :top_n, 
+                    :query_text,
+                    CAST(:embedding AS vector(1536)),
+                    :top_n,
                     :consider_n
                 );
             """
@@ -106,9 +112,14 @@ class PostgresSearcher:
         else:
             raise ValueError("Invalid retrieval_mode. Options are: VECTOR, SEMANTIC, GRAPHRAG")
 
-        sql = text(function_call).columns(
-            column("rrf.id", String),
-        )
+        if retrieval_mode == RetrievalMode.MSRGRAPHRAG:
+            sql = text(function_call).columns(
+                column("document_id", String),
+            )
+        else:
+            sql = text(function_call).columns(
+                column("rrf.id", String),
+            )
 
         # Execute the query with the required parameters
         await self.db_session.execute(text('SET search_path = ag_catalog, "$user", public;'))
@@ -131,7 +142,10 @@ class PostgresSearcher:
         # Convert results to SQLAlchemy models
         row_models = []
         for row in results[:top]:
-            id = row.id  # Adjust if column names differ
+            if retrieval_mode == RetrievalMode.MSRGRAPHRAG:
+                id = row[1]  # Adjust if column names differ
+            else:
+                id = row.id
             # Fetch the corresponding row using the ID
             item = await self.db_session.execute(select(Case).where(Case.id == id))
             row_models.append(item.scalar())
