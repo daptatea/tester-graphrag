@@ -48,7 +48,7 @@ embedding_query AS (
 vector AS (
     SELECT cases.id, cases.data#>>'{name_abbreviation}' AS case_name, cases.data#>>'{decision_date}' AS date, cases.data AS data, 
     RANK() OVER (ORDER BY description_vector <=> embedding) AS vector_rank, query_text, embedding
-    FROM cases, embedding_query
+    FROM cases cases, embedding_query
     WHERE (cases.data#>>'{court, id}')::integer IN (9029)--, 8985) -- Washington Supreme Court (9029) or Washington Court of Appeals (8985)
     ORDER BY description_vector <=> embedding
     LIMIT 60
@@ -128,6 +128,7 @@ order by score DESC;
 
 
 -- Demo dataset
+create temp table demo_dataset as (
 WITH
 user_query as (
 	select 'Water leaking into the apartment from the floor above.' as query_text
@@ -152,8 +153,20 @@ graph AS (
             RETURN n.case_id AS case_id, s.case_id AS ref_id
         $$) as graph_query(case_id TEXT, ref_id TEXT)
 	ON vector.id = graph_query.case_id
+),
+demo_ids as (
+	select distinct id from (
+		select ref_id as id from graph
+		where ref_id is not null
+		union
+		select id from graph
+	)
 )
-select distinct ref_id from graph;
+select cases.* from demo_ids
+left join cases
+on cases.id = demo_ids.id
+);
+
 --select count(*) from cases c 
 --where c.id in (select id from graph)
 --	  or c.id in (select ref_id from graph);
